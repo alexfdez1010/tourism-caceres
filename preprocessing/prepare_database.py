@@ -1,5 +1,7 @@
+from functools import reduce
+
 from neo4j import GraphDatabase
-from TourismDAO import TourismDAO, Node, TypeRelation
+from TourismDAO import TourismDAO, Node, TypeRelation, Sequence
 from csv import reader
 
 VERY_CLOSE: float = 0.00043125
@@ -15,6 +17,7 @@ def main():
     password = open("password.txt").read().strip()
     driver = GraphDatabase.driver(uri, auth=(user, password))
     dao = TourismDAO(driver)
+    seq = Sequence(0)
     with open('monuments.csv', newline='') as f:
         monuments = reader(f)
         monuments = list(monuments)
@@ -22,6 +25,7 @@ def main():
         map(lambda x: list(map(lambda y: y.strip(), x)), monuments))  # Elimina espacios en blanco dentro de las cadenas
     monuments = monuments[1:]  # Elimina la primera fila
     monuments = list(map(lambda monument: Node(
+        id=seq.next(),
         name=f"{monument[3].title()} {monument[4]}",
         category=monument[3],
         latitude=float(monument[2]),
@@ -32,16 +36,60 @@ def main():
         restaurants = reader(f)
         restaurants = list(restaurants)
     restaurants = list(
-        map(lambda x: list(map(lambda y: y.strip(), x)), restaurants))  # Elimina espacios en blanco dentro de las cadenas
+        map(lambda x: list(map(lambda y: y.strip(), x)),
+            restaurants))  # Elimina espacios en blanco dentro de las cadenas
     restaurants = restaurants[1:]  # Elimina la primera fila
     restaurants = list(map(lambda y: Node(
+        id=seq.next(),
         name=f"Restaurante {y[8]}",
         category="RESTAURANTE",
         latitude=float(y[5]),
         longitude=float(y[3]),
         link=y[1]
     ), restaurants))
-    data = monuments + restaurants
+    with open('cafe.csv', newline='') as f:
+        cafes = reader(f)
+        cafes = list(cafes)
+    cafes = list(
+        map(lambda x: list(map(lambda y: y.strip(), x)), cafes))  # Elimina espacios en blanco dentro de las cadenas
+    cafes = cafes[1:]  # Elimina la primera fila
+    cafes = list(map(lambda cafe: Node(
+        id=seq.next(),
+        name=cafe[7],
+        category="CAFÉ BAR",
+        latitude=float(cafe[5]),
+        longitude=float(cafe[3]),
+        link=cafe[1],
+    ), cafes))
+    with open('library.csv', newline='') as f:
+        libraries = reader(f)
+        libraries = list(libraries)
+    libraries = list(
+        map(lambda x: list(map(lambda y: y.strip(), x)), libraries))  # Elimina espacios en blanco dentro de las cadenas
+    libraries = libraries[1:]  # Elimina la primera fila
+    libraries = list(map(lambda library: Node(
+        id=seq.next(),
+        name=library[6],
+        category="BIBLIOTECA",
+        latitude=float(library[4]),
+        longitude=float(library[3]),
+        link=library[1],
+    ), libraries))
+    with open('museum.csv', newline='') as f:
+        museums = reader(f)
+        museums = list(museums)
+    museums = list(
+        map(lambda x: list(map(lambda y: y.strip(), x)), museums))  # Elimina espacios en blanco dentro de las cadenas
+    museums = museums[1:]  # Elimina la primera fila
+    museums = list(map(lambda museum: Node(
+        id=seq.next(),
+        name=museum[7],
+        category="MUSEO",
+        latitude=float(museum[5]),
+        longitude=float(museum[4]),
+        link=museum[2],
+    ), museums))
+    data = monuments + restaurants + cafes + libraries + museums
     for node in data:
         dao.add_node(node)
         print(f" Added {node}")
@@ -59,6 +107,8 @@ def main():
                 dao.add_relationship(data[i], data[j], str(TypeRelation.NEAR))
                 print(f"Relationship near added between {data[i].name} and {data[j].name}")
 
+    dao.create_indexes()
+    dao.close()
     driver.close()
 
 
