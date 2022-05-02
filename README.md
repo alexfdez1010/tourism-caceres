@@ -1,4 +1,4 @@
-# monuments-caceres
+# tourism-caceres
 
 ## Project setup
 ```
